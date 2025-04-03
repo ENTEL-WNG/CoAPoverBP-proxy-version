@@ -91,6 +91,8 @@ The Topology looks as follows:
 
 CoAP Client           Node A            Node C          Node D            Node B           CoAP Server
 
+If displayed wrong, refer to Topology.png
+
 ## TODO
 
 - [ ] Utilize aiocoaps internal token and MID handlingn, where applicable.
