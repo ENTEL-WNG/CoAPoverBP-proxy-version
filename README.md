@@ -103,3 +103,8 @@ If displayed wrong, refer to Topology.png
 - [ ] Design question: Which Proxy should be responsible for token and MID preservation?
 - [ ] Test again, if aiocoaps own proxy library can be utilized 
 
+## AUTHORS:
+
+
+## FUNDING:
+This research was funded in part by the Spanish MCIU/AEI/10.13039/501100011033/ FEDER/UE through project PID2023-146378NB-I00, and by Secretaria d'Universitats i Recerca del departament d'Empresa i Coneixement de la Generalitat de Catalunya with the grant number 2021 SGR 00330
