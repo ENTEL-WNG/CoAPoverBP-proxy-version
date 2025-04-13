@@ -7,7 +7,7 @@ from ud3tn_utils.aap2.generated import aap2_pb2
 # Node A setup
 AAP2_SOCKET = "ud3tn-a.aap2.socket" # Path to UD3TN AAP2 socket on Node A
 DEST_EID = "dtn://b.dtn/rec"        # Destination EID (Node B receiver)
-COAP_LISTEN_PORT = 5683             # CoAP port
+COAP_LISTEN_PORT = 5685             # CoAP port
 
 # Async AAP2 clients for send/receive
 send_client = AAP2AsyncUnixClient(AAP2_SOCKET)

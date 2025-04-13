@@ -2,7 +2,7 @@ import asyncio
 from aiocoap import *
 import random
 
-COAP_PROXY_URI = "coap://localhost:5683" # Connects to Node A's proxy
+COAP_PROXY_URI = "coap://localhost:5685" # Connects to Node A's proxy
 
 async def main():
     context = await Context.create_client_context()

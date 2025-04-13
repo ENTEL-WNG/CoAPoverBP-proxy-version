@@ -17,7 +17,7 @@ async def forward_to_coap_server(coap_bytes):
         original = Message.decode(coap_bytes)
 
         path = "/" + "/".join(original.opt.uri_path)
-        full_uri = f"coap://localhost:5688{path}"
+        full_uri = f"coap://localhost:5683{path}"
 
         forwarded = Message(
             code=original.code,
