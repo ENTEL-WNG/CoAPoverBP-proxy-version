@@ -1,6 +1,10 @@
 import asyncio
-import aiocoap.resource as resource
+import sys
+import os
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'aiocoap', 'src'))
+sys.path.insert(0, project_root)
 import aiocoap
+import aiocoap.resource as resource
 from aiocoap.numbers.codes import Code
 
 # Temperature storage and dynamic resource handling
@@ -23,14 +27,16 @@ class TemperatureResource(resource.Resource):
         return aiocoap.Message(code=Code.CONTENT, payload=payload)
 
     async def render_put(self, request):
+        print(f"[LOG] INCOMING -> PUT MID: {request.mid}, Token: {request.token.hex()}")
         try:
             temperature = float(request.payload.decode("utf-8"))
             self.temperatures.append(temperature)
             print(f"Received temperature: {temperature}")
-            return aiocoap.Message(code=Code.CHANGED, payload=b"Temperature recorded.")
+            response = aiocoap.Message(code=Code.CHANGED, payload=b"Temperature recorded.")
         except ValueError:
-            return aiocoap.Message(code=Code.BAD_REQUEST, payload=b"Invalid temperature.")
-
+            response = aiocoap.Message(code=Code.BAD_REQUEST, payload=b"Invalid temperature.")
+        return response
+    
 
 class DummyPOST(resource.Resource):
     def __init__(self):

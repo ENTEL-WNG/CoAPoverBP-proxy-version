@@ -1,4 +1,8 @@
 import asyncio
+import sys
+import os
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'aiocoap', 'src'))
+sys.path.insert(0, project_root)
 from aiocoap import *
 from aiocoap.numbers.codes import Code
 from ud3tn_utils.aap2.aap2_client import AAP2AsyncUnixClient
@@ -29,11 +33,15 @@ async def forward_to_coap_server(coap_bytes):
 
         response = await protocol.request(forwarded).response
 
+        print(f"[Node B] CoAP server replied")
+
+        print(f"[LOG] INCOMING -> PUT MID: {response.mid}, Token: {response.token.hex()}")
+
         # Preserve original metadata
         response.token = original.token
         response.mid = original.mid
 
-        print(f"[Node B] CoAP server replied")
+        print(f"[LOG] OUTGOING TO CLIENT -> PUT MID: {response.mid}, Token: {response.token.hex()}")
 
         return response.encode()
 

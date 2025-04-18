@@ -1,4 +1,8 @@
 import asyncio
+import sys
+import os
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'aiocoap', 'src'))
+sys.path.insert(0, project_root)
 from aiocoap import *
 import random
 
@@ -58,6 +62,8 @@ async def main():
             response = await context.request(request).response
             print(f"[Client] Response: {response.code}")
             print(f"Payload: {response.payload.decode('utf-8')}")
+            print(f"MID: {response.mid}")
+            print(f"Token: {request.token.hex()}")
         except Exception as e:
             print(f"[Client] Request failed: {e}")
 
