@@ -77,9 +77,7 @@ sqlite3 ud3tn-c.sqlite \
 aap2-storage-agent --socket ud3tn-c.aap2.socket --storage-agent-eid "dtn://c.dtn/sqlite" push --dest-eid-glob "*"
 ```
 
-## CURRENT PROGRESS OF THIS IMPLEMENTATION
-
-This implemenation currently has a CoAP Client seperate from and connected to the Node A Application Agent and a CoAP Server seperate and connected to the Node B Application Agent. It sends CoAP NON PUT messages over the Bunlde Network passing multiple Bundle Nodes, implementing persisent storage functionality and delayed contact simulation.
+## TOPOLOGY
 
 The Topology looks as follows:
 
@@ -95,5 +93,8 @@ If displayed wrong, refer to Topology.png
 
 ## AUTHORS
 
+
+
 ## FUNDING
+
 This research was funded in part by the Spanish MCIU/AEI/10.13039/501100011033/ FEDER/UE through project PID2023-146378NB-I00, and by Secretaria d'Universitats i Recerca del departament d'Empresa i Coneixement de la Generalitat de Catalunya with the grant number 2021 SGR 00330
