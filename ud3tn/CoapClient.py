@@ -1,57 +1,50 @@
 import asyncio
 import sys
 import os
+import random
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'aiocoap', 'src'))
 sys.path.insert(0, project_root)
 from aiocoap import *
-import random
 
-COAP_PROXY_URI = "coap://localhost:5685" # Connects to Node A's proxy
+COAP_PROXY_URI = "coap://localhost:5685" 
 
 async def main():
     context = await Context.create_client_context()
 
+    pending_tasks = []
+
     while True:
         print("\nOptions:")
         print(" 1 - PUT temperature")
-        print(" 2 - GET latest temperature")
-        print(" 3 - GET all temperatures")
-        print(" 4 - POST test")
-        print(" 5 - EXIT")
+        print(" 2 - FLUSH and wait for responses")
+        print(" 3 - EXIT")
         choice = input("Select: ")
 
         if choice == "1":
             temperature = round(random.uniform(15.0, 30.0), 2)
-            print(f"[Client] Sending PUT /temperature: {temperature}")
+            print(f"[Client] Queueing PUT /temperature: {temperature}")
             request = Message(
-                mtype = NON,
+                mtype=NON,
                 code=PUT,
                 uri=f"{COAP_PROXY_URI}/temperature",
                 payload=str(temperature).encode("utf-8")
             )
         elif choice == "2":
-            print("[Client] Sending GET /temperature")
-            request = Message(
-                mtype=NON,
-                code=GET,
-                uri=f"{COAP_PROXY_URI}/temperature"
-            )
+            print("Waiting for all queued responses...")
+
+            responses = await asyncio.gather(*pending_tasks, return_exceptions=True)
+
+            for idx, resp in enumerate(responses):
+                if isinstance(resp, Exception):
+                    print(f"[Client] Request {idx} failed: {resp}")
+                else:
+                    print(f"[Client] Response {idx}: {resp.code}")
+                    print(f"Payload: {resp.payload.decode('utf-8')}")
+                    print(f"MID: {resp.mid}")
+
+            pending_tasks.clear()
+            continue 
         elif choice == "3":
-            print("[Client] Sending GET /temperature?all")
-            request = Message(
-                mtype=NON,
-                code=GET,
-                uri=f"{COAP_PROXY_URI}/temperature?all"
-            )
-        elif choice == "4":
-            print("[Client] Sending POST /testpost")
-            request = Message(
-                mtype=NON,
-                code=POST,
-                uri=f"{COAP_PROXY_URI}/testpost",
-                payload=b"Just testing POST"
-            )
-        elif choice == "5":
             print("Exiting.")
             break
         else:
@@ -59,14 +52,10 @@ async def main():
             continue
 
         try:
-            response = await context.request(request).response
-            print(f"[Client] Response: {response.code}")
-            print(f"Payload: {response.payload.decode('utf-8')}")
-            print(f"MID: {response.mid}")
-            print(f"Token: {request.token.hex()}")
+            task = context.request(request).response
+            pending_tasks.append(task)
         except Exception as e:
-            print(f"[Client] Request failed: {e}")
-
+            print(f"[Client] Request setup failed: {e}")
 
 if __name__ == "__main__":
     asyncio.run(main())
