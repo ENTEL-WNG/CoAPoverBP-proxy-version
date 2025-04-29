@@ -1,61 +1,91 @@
+# CoapClient.py
+
 import asyncio
-import sys
+import aioconsole
 import os
-import random
+import sys
+
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'aiocoap', 'src'))
 sys.path.insert(0, project_root)
-from aiocoap import *
+from aiocoap import Context, Message
+from aiocoap.numbers.codes import Code
+from aiocoap.numbers.types import Type
 
-COAP_PROXY_URI = "coap://localhost:5685" 
+COAP_PROXY_URI = "coap://localhost:5685"  # Local proxy port on Node A
+
+async def send_and_print(request, context):
+    try:
+        response = await context.request(request).response
+        print("\nReceived response:")
+        print(f"  Code: {response.code}")
+        print(f"  Payload: {response.payload.decode('utf-8', errors='ignore')}")
+    except Exception as e:
+        print(f"[Client] Request failed: {e}")
 
 async def main():
     context = await Context.create_client_context()
 
-    pending_tasks = []
-
     while True:
-        print("\nOptions:")
-        print(" 1 - PUT temperature")
-        print(" 2 - FLUSH and wait for responses")
-        print(" 3 - EXIT")
-        choice = input("Select: ")
+        print("Commands: post, put, get, delete, exit")
+        cmd = (await aioconsole.ainput("Enter command: ")).strip().lower()
 
-        if choice == "1":
-            temperature = round(random.uniform(15.0, 30.0), 2)
-            print(f"[Client] Queueing PUT /temperature: {temperature}")
-            request = Message(
-                mtype=NON,
-                code=PUT,
-                uri=f"{COAP_PROXY_URI}/temperature",
-                payload=str(temperature).encode("utf-8")
-            )
-        elif choice == "2":
-            print("Waiting for all queued responses...")
-
-            responses = await asyncio.gather(*pending_tasks, return_exceptions=True)
-
-            for idx, resp in enumerate(responses):
-                if isinstance(resp, Exception):
-                    print(f"[Client] Request {idx} failed: {resp}")
-                else:
-                    print(f"[Client] Response {idx}: {resp.code}")
-                    print(f"Payload: {resp.payload.decode('utf-8')}")
-                    print(f"MID: {resp.mid}")
-
-            pending_tasks.clear()
-            continue 
-        elif choice == "3":
-            print("Exiting.")
+        if cmd == "exit":
+            print("Exiting client.")
             break
+
+        # build request + remember its URI
+        if cmd == "post":
+            name = await aioconsole.ainput("Enter new resource name: ")
+            uri = COAP_PROXY_URI + "/"
+            request = Message(
+                code=Code.POST,
+                uri=uri,
+                mtype=Type.NON,
+                payload=name.encode('utf-8')
+            )
+
+        elif cmd == "put":
+            name = await aioconsole.ainput("Enter resource name to PUT to: ")
+            val  = await aioconsole.ainput("Enter value to PUT: ")
+            uri = f"{COAP_PROXY_URI}/{name}"
+            request = Message(
+                code=Code.PUT,
+                uri=uri,
+                mtype=Type.NON,
+                payload=val.encode('utf-8')
+            )
+
+        elif cmd == "get":
+            name = await aioconsole.ainput("Enter resource name to GET: ")
+            uri = f"{COAP_PROXY_URI}/{name}"
+            request = Message(
+                code=Code.GET,
+                uri=uri,
+                mtype=Type.NON,
+                payload=b"get"
+            )
+
+        elif cmd == "delete":
+            name = await aioconsole.ainput("Enter resource name to DELETE: ")
+            uri = f"{COAP_PROXY_URI}/{name}"
+            request = Message(
+                code=Code.DELETE,
+                uri=uri,
+                mtype=Type.NON,
+                payload=b"delete"
+            )
+
         else:
-            print("Invalid choice.")
+            print("Unknown command.")
             continue
 
-        try:
-            task = context.request(request).response
-            pending_tasks.append(task)
-        except Exception as e:
-            print(f"[Client] Request setup failed: {e}")
+        # dispatch asynchronously
+        asyncio.create_task(send_and_print(request, context))
+        print(f"[Client] Dispatched {cmd.upper()} -> {uri}")
+
+    # give any in-flight tasks a moment before exit
+    await asyncio.sleep(0.1)
+    print("Goodbye!")
 
 if __name__ == "__main__":
     asyncio.run(main())

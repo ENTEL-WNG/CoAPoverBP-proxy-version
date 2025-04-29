@@ -42,8 +42,8 @@ def get_transport():
 # Main loop for aggregating and sending CoAP requests
 async def dtn_request_loop():
     coap_buffer = []  # Buffer for aggregation
-    BUFFER_LIMIT = 3
-    TIMEOUT_SECONDS = 2
+    BUFFER_LIMIT = 5
+    TIMEOUT_SECONDS = 10
 
     async def flush_buffer():
         nonlocal coap_buffer

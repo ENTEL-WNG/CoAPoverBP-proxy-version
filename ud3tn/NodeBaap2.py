@@ -20,6 +20,9 @@ async def forward_to_coap_server(coap_bytes, payload_length):
         protocol = await Context.create_client_context()
         original = Message.decode(coap_bytes)
 
+        if original.opt.uri_path == ['']:
+            original.opt.uri_path = []
+
         path = "/" + "/".join(original.opt.uri_path)
         full_uri = f"coap://localhost:5683{path}"
 
@@ -30,19 +33,23 @@ async def forward_to_coap_server(coap_bytes, payload_length):
             mtype=original.mtype,   
             payload_length=payload_length
         )
-        print(f"[Node B] Forwarding CoAP")
+        print(f"[Node B] Forwarding CoAP:")
+        print(f"  Method: {original.code}")
+        print(f"  URI Path: {original.opt.uri_path}")
+        print(f"  Full URI: {full_uri}")
+        print(f"  Payload: {original.payload}")
 
         response = await protocol.request(forwarded).response
 
         print(f"[Node B] CoAP server replied")
 
-        print(f"[LOG] INCOMING -> PUT MID: {response.mid}, Token: {response.token.hex()}")
+        print(f"[LOG] INCOMING -> MID: {response.mid}, Token: {response.token.hex()}")
 
         # Preserve original metadata
         response.token = original.token
         response.mid = original.mid
 
-        print(f"[LOG] OUTGOING TO CLIENT -> PUT MID: {response.mid}, Token: {response.token.hex()}")
+        print(f"[LOG] OUTGOING TO CLIENT -> MID: {response.mid}, Token: {response.token.hex()}")
 
         return response.encode()
 
