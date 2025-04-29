@@ -91,8 +91,8 @@ async def main():
     for resource_name in resources_db.keys():
         root.add_resource((resource_name,), DynamicResource(resource_name))
 
-    await aiocoap.Context.create_server_context(root, bind=("localhost", 5683))
-    print("[Server] CoAP server running at udp://localhost:5683")
+    await aiocoap.Context.create_server_context(root, bind=("b.dtn.arpa", 5683))
+    print("[Server] CoAP server running at udp://b.dtn.arpa:5683")
 
     await asyncio.get_running_loop().create_future()
 

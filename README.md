@@ -1,6 +1,15 @@
 ## RUNNING THE PROJECT FOR THE FIRST TIME:
 
 ```bash
+sudo nano /etc/hosts
+# Add the follwing at the bottom for CoAP over Bundle
+127.0.0.1   a.dtn.arpa
+127.0.0.1   b.dtn.arpa
+::1         a.dtn.arpa
+::1         b.dtn.arpa
+```
+
+```bash
 make posix
 sudo apt install python3-pip
 sudo pip install ud3tn

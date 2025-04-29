@@ -9,7 +9,6 @@ from ud3tn_utils.aap2.aap2_client import AAP2AsyncUnixClient
 from ud3tn_utils.aap2.generated import aap2_pb2
 
 AAP2_SOCKET = "ud3tn-b.aap2.socket"
-COAP_SERVER_URI = "coap://localhost" # Local CoAP server on Node B
 
 send_client = AAP2AsyncUnixClient(AAP2_SOCKET)
 receive_client = AAP2AsyncUnixClient(AAP2_SOCKET)
@@ -24,7 +23,7 @@ async def forward_to_coap_server(coap_bytes, payload_length):
             original.opt.uri_path = []
 
         path = "/" + "/".join(original.opt.uri_path)
-        full_uri = f"coap://localhost:5683{path}"
+        full_uri = f"coap://b.dtn.arpa:5683{path}"
 
         forwarded = Message(
             code=original.code,
@@ -34,10 +33,6 @@ async def forward_to_coap_server(coap_bytes, payload_length):
             payload_length=payload_length
         )
         print(f"[Node B] Forwarding CoAP:")
-        print(f"  Method: {original.code}")
-        print(f"  URI Path: {original.opt.uri_path}")
-        print(f"  Full URI: {full_uri}")
-        print(f"  Payload: {original.payload}")
 
         response = await protocol.request(forwarded).response
 

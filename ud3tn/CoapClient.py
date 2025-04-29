@@ -11,7 +11,7 @@ from aiocoap import Context, Message
 from aiocoap.numbers.codes import Code
 from aiocoap.numbers.types import Type
 
-COAP_PROXY_URI = "coap://localhost:5685"  # Local proxy port on Node A
+COAP_PROXY_URI = "coap://a.dtn.arpa:5685"  # Local proxy port on Node A
 
 async def send_and_print(request, context):
     try:

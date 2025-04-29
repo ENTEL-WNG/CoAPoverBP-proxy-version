@@ -70,6 +70,14 @@ async def dtn_request_loop():
             if request.payload:
                 request.opt.payload_length = len(request.payload)
 
+            if request.opt.uri_path == ['']:
+                request.opt.uri_path = []
+
+            path = "/" + "/".join(request.opt.uri_path)
+            full_uri = f"coap://b.dtn.arpa:5683{path}"
+            
+            request.set_request_uri(full_uri)
+
             # Track client address for the token
             pending_tokens[request.token] = addr
 
@@ -108,7 +116,7 @@ async def main():
     loop = asyncio.get_running_loop()
     transport, protocol = await loop.create_datagram_endpoint(
         lambda: CoAPListener(),
-        local_addr=("localhost", COAP_LISTEN_PORT)
+        local_addr=("a.dtn.arpa", COAP_LISTEN_PORT)
     )
     _coap_transport = transport
 
