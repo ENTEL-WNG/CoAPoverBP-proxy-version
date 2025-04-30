@@ -38,7 +38,7 @@ class MessageManager(interfaces.TokenInterface, interfaces.MessageManager):
     def __init__(self, token_manager) -> None:
         self.token_manager = token_manager
 
-        # Space CoAP Modifcation
+        # experimental for draft-gomez-core-coap-bp-03
         self.message_id = random.randint(0, 16777215)
         #self.message_id = random.randint(0, 65535)
         #: Tracker of recently received messages (by remote and message ID).
@@ -519,7 +519,7 @@ class MessageManager(interfaces.TokenInterface, interfaces.MessageManager):
     def _next_message_id(self):
         """Reserve and return a new message ID."""
         message_id = self.message_id
-        # Space CoAP Modifcation
+        # experimental for draft-gomez-core-coap-bp-03
         #self.message_id = 0xFFFF & (1 + self.message_id)
         self.message_id = 0xFFFFFF & (1 + self.message_id)
         return message_id

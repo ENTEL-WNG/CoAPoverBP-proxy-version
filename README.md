@@ -88,22 +88,26 @@ aap2-storage-agent --socket ud3tn-c.aap2.socket --storage-agent-eid "dtn://c.dtn
 
 ## TOPOLOGY
 
-The Topology looks as follows:
-
-+--------+        +------------+      +--------+      +--------+      +------------+       +--------+ 
-|  CoAP  |  <---  | CoAP Proxy | <--- | SQLLite| <--- |        | <--- | CoAP Proxy |  <--- |  CoAP  |
-+--------+        +------------+      |   BDM  |      |        |      +------------+       +--------+
-|   UDP  |  --->  | UDP |  BP  | ---> |   BP   | ---> |   BP   | ---> |  BP |  UDP |  ---> |   UDP  |
-+--------+        +------------+      +--------+      +--------+      +------------+       +--------+ 
-
-CoAP Client           Node A            Node C          Node D            Node B           CoAP Server
-
-If displayed wrong, refer to Topology.png
+The Topology can be sen in Topology.png
 
 ## AUTHORS
 
+- Michael Karpov <michael.karpov@estudiantat.upc.edu> — Initial author and main developer
+- ?
 
+## CODE MODIFICATIONS
+
+This project includes modified files from the aiocoap library(https://github.com/chrysn/aiocoap), originally developed by Christian Amsüss and contributors.
+
+Modifications were made to support implement the main ideas of ietf draft "draft-gomez-core-coap-bp-03".
+
+All changes are clearly marked in the source files with inline comments "# experimental for draft-gomez-core-coap-bp-03".
 
 ## FUNDING
 
 This research was funded in part by the Spanish MCIU/AEI/10.13039/501100011033/ FEDER/UE through project PID2023-146378NB-I00, and by Secretaria d'Universitats i Recerca del departament d'Empresa i Coneixement de la Generalitat de Catalunya with the grant number 2021 SGR 00330
+
+## LICENSE
+
+
+## ACKNOWLEDGEMENTS
