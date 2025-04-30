@@ -1,19 +1,20 @@
-# CoapClient.py
-
 import asyncio
 import aioconsole
 import os
 import sys
 
+# Add aiocoap source to path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'aiocoap', 'src'))
 sys.path.insert(0, project_root)
+
 from aiocoap import Context, Message
 from aiocoap.numbers.codes import Code
 from aiocoap.numbers.types import Type
 
-COAP_PROXY_URI = "coap://a.dtn.arpa:5685"  # Local proxy port on Node A
+COAP_PROXY_URI = "coap://a.dtn.arpa:5685"  # Proxy address on Node A
 
 async def send_and_print(request, context):
+    """Send a CoAP request and print the response."""
     try:
         response = await context.request(request).response
         print("\nReceived response:")
@@ -23,6 +24,7 @@ async def send_and_print(request, context):
         print(f"[Client] Request failed: {e}")
 
 async def main():
+    """Interactive console-based CoAP client."""
     context = await Context.create_client_context()
 
     while True:
@@ -33,7 +35,7 @@ async def main():
             print("Exiting client.")
             break
 
-        # build request + remember its URI
+        # Build request
         if cmd == "post":
             name = await aioconsole.ainput("Enter new resource name: ")
             uri = COAP_PROXY_URI + "/"
@@ -79,11 +81,10 @@ async def main():
             print("Unknown command.")
             continue
 
-        # dispatch asynchronously
+        # Dispatch request
         asyncio.create_task(send_and_print(request, context))
         print(f"[Client] Dispatched {cmd.upper()} -> {uri}")
 
-    # give any in-flight tasks a moment before exit
     await asyncio.sleep(0.1)
     print("Goodbye!")
 

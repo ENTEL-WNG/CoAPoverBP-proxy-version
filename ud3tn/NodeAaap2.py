@@ -1,30 +1,28 @@
 import asyncio
 import sys
 import os
+
+# Add aiocoap source to path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'aiocoap', 'src'))
 sys.path.insert(0, project_root)
+
 from aiocoap import Message
 from aiocoap.numbers.optionnumbers import OptionNumber
 from ud3tn_utils.aap2.aap2_client import AAP2AsyncUnixClient
 from ud3tn_utils.aap2.generated import aap2_pb2
 
-# Node A setup
 AAP2_SOCKET = "ud3tn-a.aap2.socket"
 DEST_EID = "dtn://b.dtn/rec"
 COAP_LISTEN_PORT = 5685
 
-# Async AAP2 clients for send/receive
 send_client = AAP2AsyncUnixClient(AAP2_SOCKET)
 receive_client = AAP2AsyncUnixClient(AAP2_SOCKET)
 
-# Queue for pending CoAP requests
 pending_requests = asyncio.Queue()
+pending_tokens = {}  # Map CoAP tokens to client addresses
 
-# Map CoAP tokens to client addresses
-pending_tokens = {}  # token -> udp address
-
-# Listener that collects incoming CoAP messages
 class CoAPListener(asyncio.DatagramProtocol):
+    """UDP listener that receives CoAP requests from clients."""
     def connection_made(self, transport):
         self.transport = transport
         print(f"[Node A] Listening on UDP port {COAP_LISTEN_PORT}")
@@ -34,14 +32,15 @@ class CoAPListener(asyncio.DatagramProtocol):
         print(f"[Node A] Received CoAP packet from {addr}, {len(data)} bytes")
         pending_requests.put_nowait((data, addr))
 
-# Transport is stored globally for reply access
+# Global reference to UDP transport for sending responses
 _coap_transport = None
+
 def get_transport():
     return _coap_transport
 
-# Main loop for aggregating and sending CoAP requests
 async def dtn_request_loop():
-    coap_buffer = []  # Buffer for aggregation
+    """Aggregates incoming CoAP requests and sends them over AAP2 bundles."""
+    coap_buffer = []
     BUFFER_LIMIT = 5
     TIMEOUT_SECONDS = 10
 
@@ -66,7 +65,6 @@ async def dtn_request_loop():
             request = Message.decode(data)
             print(f"[Node A] CoAP Message: {request.code}, MID: {request.mid}, Token: {request.token.hex()}")
 
-            # Set Payload-Length option
             if request.payload:
                 request.opt.payload_length = len(request.payload)
 
@@ -75,10 +73,8 @@ async def dtn_request_loop():
 
             path = "/" + "/".join(request.opt.uri_path)
             full_uri = f"coap://b.dtn.arpa:5683{path}"
-            
             request.set_request_uri(full_uri)
 
-            # Track client address for the token
             pending_tokens[request.token] = addr
 
             coap_buffer.append(request.encode())
@@ -91,6 +87,7 @@ async def dtn_request_loop():
             continue
 
 async def handle_incoming_responses():
+    """Receives responses from the DTN and forwards them to original CoAP clients."""
     while True:
         adu_msg, recv_payload = await receive_client.receive_adu()
         print(f"[Node A] Received response from {adu_msg.src_eid}, payload size: {len(recv_payload)} bytes")
@@ -111,8 +108,8 @@ async def handle_incoming_responses():
             print(f"[Node A] Failed to decode response: {e}")
 
 async def main():
+    """Initializes the Proxy server and runs DTN and response handlers."""
     global _coap_transport
-
     loop = asyncio.get_running_loop()
     transport, protocol = await loop.create_datagram_endpoint(
         lambda: CoAPListener(),

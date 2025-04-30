@@ -2,8 +2,11 @@ import asyncio
 import sys
 import os
 import json
+
+# Add aiocoap source to path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'aiocoap', 'src'))
 sys.path.insert(0, project_root)
+
 import aiocoap
 import aiocoap.resource as resource
 from aiocoap.numbers.codes import Code
@@ -11,16 +14,14 @@ from aiocoap.numbers.codes import Code
 DATABASE_FILE = 'resources.json'
 resources_db = {}
 
-# ----------------------------
-# Helper functions for JSON database
-# ----------------------------
-
 def save_to_file():
+    """Save current resources to JSON file."""
     with open(DATABASE_FILE, 'w') as f:
         json.dump(resources_db, f)
     print("[Server] Database saved.")
 
 def load_from_file():
+    """Load resources from JSON file if available."""
     global resources_db
     if os.path.exists(DATABASE_FILE):
         with open(DATABASE_FILE, 'r') as f:
@@ -29,11 +30,8 @@ def load_from_file():
     else:
         print("[Server] No database found, starting fresh.")
 
-# ----------------------------
-# Resources
-# ----------------------------
-
 class DynamicResource(resource.Resource):
+    """A dynamic CoAP resource supporting GET, PUT, and DELETE."""
     def __init__(self, name):
         super().__init__()
         self.name = name
@@ -58,6 +56,7 @@ class DynamicResource(resource.Resource):
         return aiocoap.Message(code=Code.DELETED, payload=b"Resource cleared.")
 
 class DynamicResourceCreator(resource.Resource):
+    """Handles POST requests to dynamically create new resources."""
     def __init__(self, root_site):
         super().__init__()
         self.root_site = root_site
@@ -78,11 +77,8 @@ class DynamicResourceCreator(resource.Resource):
         print(f"[Server] Created new resource: {name}")
         return aiocoap.Message(code=Code.CREATED, payload=f"Resource '{name}' created.".encode('utf-8'))
 
-# ----------------------------
-# Main Server
-# ----------------------------
-
 async def main():
+    """Starts the CoAP server and loads existing resources."""
     load_from_file()
 
     root = resource.Site()
@@ -95,7 +91,6 @@ async def main():
     print("[Server] CoAP server running at udp://b.dtn.arpa:5683")
 
     await asyncio.get_running_loop().create_future()
-
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -1,20 +1,22 @@
 import asyncio
 import sys
 import os
+
+# Add aiocoap source to path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'aiocoap', 'src'))
 sys.path.insert(0, project_root)
+
 from aiocoap import *
 from aiocoap.numbers.codes import Code
 from ud3tn_utils.aap2.aap2_client import AAP2AsyncUnixClient
 from ud3tn_utils.aap2.generated import aap2_pb2
 
 AAP2_SOCKET = "ud3tn-b.aap2.socket"
-
 send_client = AAP2AsyncUnixClient(AAP2_SOCKET)
 receive_client = AAP2AsyncUnixClient(AAP2_SOCKET)
 
-# Forwards decoded CoAP request to local CoAP server
 async def forward_to_coap_server(coap_bytes, payload_length):
+    """Forwards a decoded CoAP request to a local CoAP server and returns the response."""
     try:
         protocol = await Context.create_client_context()
         original = Message.decode(coap_bytes)
@@ -32,25 +34,21 @@ async def forward_to_coap_server(coap_bytes, payload_length):
             mtype=original.mtype,   
             payload_length=payload_length
         )
+
         print(f"[Node B] Forwarding CoAP:")
-
         response = await protocol.request(forwarded).response
-
         print(f"[Node B] CoAP server replied")
 
         print(f"[LOG] INCOMING -> MID: {response.mid}, Token: {response.token.hex()}")
 
-        # Preserve original metadata
         response.token = original.token
         response.mid = original.mid
 
         print(f"[LOG] OUTGOING TO CLIENT -> MID: {response.mid}, Token: {response.token.hex()}")
-
         return response.encode()
 
     except Exception as e:
         print(f"[Node B] CoAP forwarding error: {e}")
-        # Return fallback error response
         error_response = Message(
             code=Code.INTERNAL_SERVER_ERROR,
             payload=b"Server error (node B)"
@@ -62,6 +60,7 @@ async def forward_to_coap_server(coap_bytes, payload_length):
 
 
 async def bundle_to_coap_bridge():
+    """Receives bundled CoAP requests via AAP2 and relays them to a local CoAP server."""
     async with send_client, receive_client:
         await send_client.configure(agent_id="snd")
         await receive_client.configure(agent_id="rec", subscribe=True)
@@ -84,18 +83,13 @@ async def bundle_to_coap_bridge():
                         raise ValueError("Missing Payload-Length option in aggregated message")
 
                     payload_length = msg.opt.payload_length
-
-                    # Re-encode the full message (header + options + 0xFF + payload)
                     full_encoded = msg.encode()
-
-                    # Find where 0xFF (Payload Marker) is
                     payload_marker_index = full_encoded.find(b'\xFF')
+
                     if payload_marker_index == -1:
                         raise ValueError("Payload Marker (0xFF) not found in CoAP message")
 
-                    # Full message length = marker index + 1 (marker byte) + payload length
                     full_message_length = payload_marker_index + 1 + payload_length
-
                     print(f"[Node B] Parsed CoAP message, payload length: {payload_length}, total length: {full_message_length}")
 
                     coap_bytes = recv_payload[offset:offset+full_message_length]
