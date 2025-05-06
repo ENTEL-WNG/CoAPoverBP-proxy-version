@@ -15,7 +15,7 @@
 
 import asyncio
 import sys
-import os # Added for os.urandom
+import os
 
 # Add aiocoap source to path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'aiocoap', 'src'))
