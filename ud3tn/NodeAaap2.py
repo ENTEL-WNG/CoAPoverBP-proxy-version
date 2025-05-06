@@ -1,6 +1,21 @@
+# NodeAaap2.py: Acts as a CoAP-to-DTN (Delay-Tolerant Networking) proxy for Node A, aggregating CoAP requests and forwarding responses.
+# Copyright (C) 2025  Michael Karpov
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import asyncio
 import sys
-import os
+import os # Added for os.urandom
 
 # Add aiocoap source to path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'aiocoap', 'src'))
@@ -14,19 +29,20 @@ from ud3tn_utils.aap2.generated import aap2_pb2
 AAP2_SOCKET = "ud3tn-a.aap2.socket"
 DEST_EID = "dtn://b.dtn/rec"
 COAP_LISTEN_PORT = 5685
+MAX_ID = 16777215
+current_id = 1
 
 send_client = AAP2AsyncUnixClient(AAP2_SOCKET)
 receive_client = AAP2AsyncUnixClient(AAP2_SOCKET)
 
 pending_requests = asyncio.Queue()
-pending_tokens = {}  # Map CoAP tokens to client addresses
+pending_tokens = {}
 
 class CoAPListener(asyncio.DatagramProtocol):
     """UDP listener that receives CoAP requests from clients."""
     def connection_made(self, transport):
         self.transport = transport
         print(f"[Node A] Listening on UDP port {COAP_LISTEN_PORT}")
-        self.transport = transport
 
     def datagram_received(self, data, addr):
         print(f"[Node A] Received CoAP packet from {addr}, {len(data)} bytes")
@@ -34,6 +50,11 @@ class CoAPListener(asyncio.DatagramProtocol):
 
 # Global reference to UDP transport for sending responses
 _coap_transport = None
+
+def next_mid():
+    """Generate the next message ID."""
+    global current_id
+    current_id = (current_id % MAX_ID) + 1
 
 def get_transport():
     return _coap_transport
@@ -62,22 +83,44 @@ async def dtn_request_loop():
             continue
 
         try:
-            request = Message.decode(data)
-            print(f"[Node A] CoAP Message: {request.code}, MID: {request.mid}, Token: {request.token.hex()}")
+            original_request = Message.decode(data) 
 
-            if request.payload:
-                request.opt.payload_length = len(request.payload)
+            original_mid = original_request.mid
+            original_client_token = original_request.token
+            print(f"[Node A] Received CoAP Message from {addr}: {original_request.code}, Original MID: {original_mid}, Original Token: {original_client_token.hex() if original_client_token else 'None'}")
 
-            if request.opt.uri_path == ['']:
-                request.opt.uri_path = []
+            new_dtn_token = os.urandom(2) 
 
-            path = "/" + "/".join(request.opt.uri_path)
-            full_uri = f"coap://b.dtn.arpa:5683{path}"
-            request.set_request_uri(full_uri)
+            forward_request = Message(
+                code=original_request.code,
+                payload=original_request.payload,
+                mtype=original_request.mtype,
+                token=new_dtn_token,
+                mid=current_id
+            )
 
-            pending_tokens[request.token] = addr
+            next_mid()
 
-            coap_buffer.append(request.encode())
+            if forward_request.payload: 
+                forward_request.opt.payload_length = len(forward_request.payload)
+
+            if original_request.opt.uri_path == ['']: 
+                uri_path_segments = []
+            else:
+                uri_path_segments = original_request.opt.uri_path
+
+            path = "/" + "/".join(uri_path_segments)
+            full_uri = f"coap://b.dtn.arpa:5683{path}" 
+            forward_request.set_request_uri(full_uri) 
+
+            pending_tokens[new_dtn_token] = {
+                'original_token': original_client_token,
+                'original_mid': original_mid,
+                'client_address': addr
+            }
+            print(f"[Node A] Forwarding to DTN: New MID: {forward_request.mid}, New Token: {new_dtn_token.hex()}")
+
+            coap_buffer.append(forward_request.encode()) 
 
             if len(coap_buffer) >= BUFFER_LIMIT:
                 await flush_buffer()
@@ -94,16 +137,26 @@ async def handle_incoming_responses():
         await receive_client.send_response_status(aap2_pb2.ResponseStatus.RESPONSE_STATUS_SUCCESS)
 
         try:
-            response = Message.decode(recv_payload)
-            token = response.token
-            addr = pending_tokens.pop(token, None)
+            response_from_dtn = Message.decode(recv_payload) 
+            dtn_token = response_from_dtn.token 
 
-            if addr:
+            context = pending_tokens.pop(dtn_token, None)
+
+            if context:
+                original_client_token = context['original_token']
+                original_mid = context['original_mid']
+                client_addr = context['client_address']
+
+                response_from_dtn.token = original_client_token
+                response_from_dtn.mid = original_mid
+                
+                response_payload_to_client = response_from_dtn.encode()
+
                 transport = get_transport()
-                transport.sendto(recv_payload, addr)
-                print(f"[Node A] Forwarded response to {addr}")
+                transport.sendto(response_payload_to_client, client_addr)
+                print(f"[Node A] Forwarded response to {client_addr} (Original MID: {original_mid}, Original Token: {original_client_token.hex() if original_client_token else 'None'})")
             else:
-                print(f"[Node A] Unknown token {token.hex()}, cannot forward response")
+                print(f"[Node A] Unknown token {dtn_token.hex() if dtn_token else 'None'}, cannot forward response")
         except Exception as e:
             print(f"[Node A] Failed to decode response: {e}")
 
