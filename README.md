@@ -96,6 +96,17 @@ sqlite3 ud3tn-c.sqlite \
 aap2-storage-agent --socket ud3tn-c.aap2.socket --storage-agent-eid "dtn://c.dtn/sqlite" push --dest-eid-glob "*"
 ```
 
+
+## VIDEO DEMONSTRATION
+
+Demo Details:
+
+https://github.com/ENTEL-WNG/CoAPoverBP-proxy-version/blob/main/Demo_Details.pdf
+
+Video:
+
+https://github.com/ENTEL-WNG/CoAPoverBP-proxy-version/blob/main/Demo_CoAP_over_BP-reduced-size.mp4
+
 ## AUTHORS
 
 - Michael Karpov <michael.karpov@estudiantat.upc.edu> — Initial author and main developer
